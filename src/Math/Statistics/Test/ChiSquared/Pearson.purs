@@ -54,6 +54,6 @@ chiSquaredStat = ChiSquaredStat <<< sum <<< contributions
 
     contribution :: Bucket -> Number
     contribution (Bucket (Tuple (Count obs) (Expectation exp))) =
-      (square (toNumber obs - exp)) / exp
+      square (toNumber obs - exp) / exp
 
     square x = x * x
