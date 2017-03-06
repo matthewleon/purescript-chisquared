@@ -8,13 +8,16 @@ import Data.Array (replicate)
 import Data.Either (fromRight)
 import Data.Foldable (all)
 import Data.Maybe (Maybe(..), fromJust)
-import Data.NonEmpty (NonEmpty, (:|))
+import Data.NonEmpty (NonEmpty(..), (:|))
 import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..))
 import Data.Unfoldable (unfoldr)
 import Partial.Unsafe (unsafePartial)
 
 import Test.QuickCheck ((===))
+import Test.QuickCheck.Gen (vectorOf)
+import Test.QuickCheck.Arbitrary (class Arbitrary, arbitrary)
+
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldEqual)
 import Test.Spec.QuickCheck (quickCheck)
@@ -28,7 +31,8 @@ import Math.Statistics.Test.ChiSquared.Pearson (
 )
 
 import Math.Statistics.Test.ChiSquared.Pearson.Buckets (
-  discreteUniformBucketize, uniformBucketize
+  discreteUniformBucketize, uniformBucketize, uniformBucketize'
+, Range, range
 )
 
 pearsonSpec :: forall r. Spec (random :: RANDOM | r) Unit
@@ -53,6 +57,16 @@ pearsonSpec =
         quickCheck \(CoinFlips coinFlips) ->
           pearsonTest permissiveAlpha (discreteUniformBucketize coinFlips)
           === Accept
+    describe "pearsontest" do
+      it "passes quickCheck's uniform generator with permissive alpha" do
+        quickCheck \(LotsOfNums nums) ->
+          pearsonTest permissiveAlpha (uniformBucketize' nums 100 uniformRange)
+          === Accept
+      it ("fails quickCheck's uniform generator with permissive alpha"
+          <> "if the range is incorrectly set") do
+        quickCheck \(LotsOfNums nums) ->
+          pearsonTest permissiveAlpha (uniformBucketize' nums 100 falseRange)
+          === Reject
   where
     buckets' b1 b2 bs = unsafePartial $ fromRight $ buckets b1 b2 bs
 
@@ -78,3 +92,13 @@ pearsonSpec =
 
     biasedData :: NonEmpty Array Number
     biasedData = 1.0 :| replicate 1000 2.0
+
+    uniformRange :: Range
+    uniformRange = unsafePartial $ fromJust $ range 0.0 1.0
+
+    falseRange :: Range
+    falseRange = unsafePartial $ fromJust $ range 0.0 1.1
+
+newtype LotsOfNums = LotsOfNums (NonEmpty Array Number)
+instance arbitraryLotsOfNums :: Arbitrary LotsOfNums where
+  arbitrary = LotsOfNums <$> (NonEmpty <$> arbitrary <*> vectorOf 100000 arbitrary)

@@ -11,8 +11,11 @@ module Math.Statistics.Test.ChiSquared.Pearson.Buckets
   , expectation
   , Count(..)
   , Expectation(..)
+  , Range
+  , range
   , discreteUniformBucketize
   , uniformBucketize
+  , uniformBucketize'
   ) where
 
 import Prelude
