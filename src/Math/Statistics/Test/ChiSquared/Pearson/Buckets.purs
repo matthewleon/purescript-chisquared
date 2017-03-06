@@ -100,18 +100,23 @@ derive newtype instance ordExpectation :: Ord Expectation
 derive newtype instance semiringExpectation :: Semiring Expectation
 derive newtype instance euclidianRingExpectation :: EuclideanRing Expectation
 
-discreteUniformBucketize :: forall f t. (Foldable f, BoundedEnum t) =>
+discreteUniformBucketize :: forall f t. (Functor f, Foldable f, BoundedEnum t) =>
   NonEmpty f t -> Buckets
 discreteUniformBucketize observedValues =
-  unsafePartial $ fromRight $
-    fromArray $ zipWith bucket bucketedObservations expectations
+  if bucketCount >= 2 && bucketCount <= 100 --Int Cardinality is -1 :(
+  then unsafePartial $ fromRight $
+    fromArray $ zipWith bucket (bucketedObservations unit) expectations
+  else uniformBucketize'
+    (toNumber <<< fromEnum <$> observedValues)
+    100
+    (unsafePartial $ fromJust $ range (toNumber bottom) (toNumber top))
   where
-    bucketCount = unwrap (cardinality :: Cardinality t)
+    bucketCount = unwrap (cardinality :: Cardinality t) --Int Cardinality -1
     expectations = replicate bucketCount expectation'
     expectation' = (toNumber <<< length $ fromFoldable observedValues) /
                    toNumber bucketCount
 
-    bucketedObservations = foldl go initialObservationArray observedValues
+    bucketedObservations _ = foldl go initialObservationArray observedValues
     initialObservationArray = replicate bucketCount 0
     bucketIndex obs = fromEnum obs - fromEnum (bottom :: t)
 

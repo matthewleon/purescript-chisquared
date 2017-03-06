@@ -74,6 +74,11 @@ bucketsSpec =
               :| bucket (length $ filter ((==) Tails) $ fromFoldable coinFlips)
                         ((toNumber $ length (fromFoldable coinFlips)) / 2.0)
               :| []
+      it "creates a maximum of 100 buckets" $
+        quickCheck \(NonEmptyIntArray xs) ->
+          -- Int is a weird BoundedEnum instance with Cardinality -1
+          (length $ fromFoldable $ toNonEmptyArray $ discreteUniformBucketize xs)
+          === 100
 
     describe "uniformBucketize" do
       it "buckets every observation" do
@@ -156,3 +161,7 @@ instance arbitraryCoinFlip :: Arbitrary CoinFlip where
   arbitrary = do
     n <- chooseInt 0 1
     pure (unsafePartial $ fromJust $ toEnum n)
+
+newtype NonEmptyIntArray = NonEmptyIntArray (NonEmpty Array Int)
+instance arbitraryNonEmptyIntArray :: Arbitrary NonEmptyIntArray where
+  arbitrary = NonEmptyIntArray <$> (NonEmpty <$> arbitrary <*> arbitrary)
